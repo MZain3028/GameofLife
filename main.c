@@ -79,3 +79,46 @@ void* updateGrid(void* threadId) {
 
     pthread_exit(NULL);
 }
+int main() {
+    pthread_t threads[NUM_THREADS];
+    pthread_mutex_init(&mutex, NULL);
+    pthread_cond_init(&generationDone, NULL);
+
+    for (int i = 0; i < GRID_SIZE; i++) {
+        for (int j = 0; j < GRID_SIZE; j++) {
+            grid[i][j] = rand() % 2;
+        }
+    }
+
+    int generations = 10;
+
+    printf("Generation 0:\n");
+    printGrid();
+
+    for (int gen = 1; gen <= generations; gen++) {    
+        for (long i = 0; i < NUM_THREADS; i++) {
+            pthread_create(&threads[i], NULL, updateGrid, (void*)i);
+        }
+
+        pthread_mutex_lock(&mutex);
+        while (generationCount != NUM_THREADS) {
+            pthread_cond_wait(&generationDone, &mutex);
+        }
+        pthread_mutex_unlock(&mutex);
+
+        for (int i = 0; i < GRID_SIZE; i++) {
+            for (int j = 0; j < GRID_SIZE; j++) {
+                grid[i][j] = newGrid[i][j];
+            }
+        }
+
+        printf("Generation %d:\n", gen);
+        printGrid();
+    }
+
+    pthread_mutex_destroy(&mutex);
+    pthread_cond_destroy(&generationDone);
+
+    return 0;
+}
+
